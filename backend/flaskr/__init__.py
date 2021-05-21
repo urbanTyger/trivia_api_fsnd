@@ -137,6 +137,9 @@ def create_app(test_config=None):
   '''
     @app.route('/questions/search', methods=['POST'])
     def search_questions():
+        if request.method != 'POST':
+            abort(405)
+
         data = request.get_json()
         search = data.get('searchTerm')
         questions = Question.query.filter(
@@ -176,23 +179,19 @@ def create_app(test_config=None):
         quizCat = info.get('quiz_category')
 
         if quizCat['id'] == 0:
-            list = Question.query.all()
+            list = Question.query.filter(Question.id.notin_(previousQ)).all()
         else:
             list = Question.query.filter(
-                Question.category == quizCat['id']).all()
+                Question.category == quizCat['id'], Question.id.notin_(
+                    previousQ)).all()
+
+        list = [listItem.format() for listItem in list]
 
         if len(list) == 0:
-            abort(404)
-
-        list = [l.format() for l in list]
-
-        sendQuestion = ''
-
-        for l in list:
+            sendQuestion = ''
+        else:
             index = random.randint(0, len(list)-1)
-            if list[index]['id'] not in previousQ:
-                sendQuestion = list[index]
-                break
+            sendQuestion = list[index]
 
         return jsonify({
             'previousQuestions': previousQ,

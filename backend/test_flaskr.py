@@ -34,14 +34,16 @@ class TriviaTestCase(unittest.TestCase):
             'difficulty': 5
         }
 
+        self.bad_new_question = {
+            'question': 'What is read and black all over?',
+            'answer': '',
+            'category': 5,
+            'difficulty': 5
+        }
+
     def tearDown(self):
         """Executed after reach test"""
         pass
-
-    """
-    TODO
-    Write at least one test for each test for successful operation and for expected errors.
-    """
 
     def test_get_categories(self):
         response = self.client().get('/categories')
@@ -71,6 +73,14 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['success'])
         self.assertTrue(data['created'])
 
+    def test_add_bad_new_question(self):
+        response = self.client().post('/questions', json=self.bad_new_question)
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(data['success'])
+        self.assertEqual(data['message'], 'bad request')
+        self.assertEqual(data['error'], 400)
+
     def test_delete_question(self):
         allQuestions = Question.query.order_by(Question.id).all()
         removeQuestion = allQuestions[-1].format()['id']
@@ -79,6 +89,14 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data['success'])
         self.assertTrue(data['deleted_id'])
+
+    def test_delete_non_existing_question(self):
+        response = self.client().delete('/questions/999')
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(data['success'])
+        self.assertEqual(data['message'], 'unprocessable')
+        self.assertEqual(data['error'], 422)
 
     def test_question_search(self):
         response = self.client().post(
@@ -89,6 +107,14 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['questions'])
         self.assertTrue(data['total_questions'])
         self.assertEqual(data['current_category'], None)
+
+    def test_invalid_question_search_method(self):
+        response = self.client().get('/questions/search')
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(data['success'])
+        self.assertEqual(data['message'], 'method not allowed')
+        self.assertEqual(data['error'], 405)
 
     def test_question_by_category(self):
         category_id = random.randint(1, 6)
@@ -110,11 +136,20 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_quiz(self):
         response = self.client().post(
-            '/quizzes', json={'previous_questions': [], 'quiz_category': {'type': '', 'id': 0}})
+            '/quizzes', json={'previous_questions': [],
+                              'quiz_category': {'type': '', 'id': 0}})
         data = response.get_json()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['previousQuestions'], [])
         self.assertTrue(data['question'])
+
+    def test_invalid_quiz_method(self):
+        response = self.client().get('/quizzes')
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(data['success'])
+        self.assertEqual(data['message'], 'method not allowed')
+        self.assertEqual(data['error'], 405)
 
 
 # Make the tests conveniently executable
