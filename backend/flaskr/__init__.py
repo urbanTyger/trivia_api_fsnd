@@ -173,6 +173,9 @@ def create_app(test_config=None):
 
     @app.route('/quizzes', methods=['POST'])
     def start_quizzes():
+        if request.method != 'POST':
+            abort(405)
+
         info = request.get_json()
 
         previousQ = info.get('previous_questions')
